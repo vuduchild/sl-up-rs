@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if let Some(commit_hash) = commit_hash {
         let output = goto_commit(commit_hash).unwrap();
-        println!("{}", String::from_utf8(output.stdout).unwrap());
+        print!("{}", String::from_utf8(output.stdout).unwrap());
     }
 
     Ok(())
