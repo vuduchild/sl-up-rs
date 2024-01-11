@@ -36,6 +36,7 @@ impl SmartLogParser {
 
         Some(selectable_commits)
     }
+
     pub fn get_hash_from_commit_line<'a>(line: &'a Vec<Output>) -> Option<&'a str> {
         let mut commit_hash_index = 0;
         for (index, block) in line.iter().enumerate() {
@@ -56,6 +57,7 @@ impl SmartLogParser {
         }
         None
     }
+
     pub fn parsed_line_to_string(line: &Vec<Output>) -> String {
         line.iter()
             .map(|block| match block {
@@ -65,6 +67,7 @@ impl SmartLogParser {
             .collect::<Vec<String>>()
             .join("")
     }
+
     pub fn has_line_selection_coloring(line: &Vec<Output>) -> bool {
         for block in line.iter() {
             match block {
@@ -83,6 +86,7 @@ impl SmartLogParser {
         }
         false
     }
+
     fn is_commit_line(line: &Vec<Output>) -> bool {
         let mut first_text_block =
             Self::get_first_text_block_contents(line).unwrap_or("".to_string());
@@ -99,6 +103,7 @@ impl SmartLogParser {
         }
         false
     }
+
     fn get_first_text_block_contents(line: &Vec<Output>) -> Option<String> {
         for block in line.iter() {
             if let Output::TextBlock(text) = block {
@@ -107,6 +112,7 @@ impl SmartLogParser {
         }
         None
     }
+
     fn preprocess_line(line: &mut Vec<Output>) {
         if line.len() == 1 {
             if let Output::TextBlock(text) = &line[0] {
@@ -116,6 +122,7 @@ impl SmartLogParser {
             }
         }
     }
+
     fn split_graph_from_text(text: &str) -> Option<(&str, &str)> {
         let mut idx = 0;
         let mut found = false;
