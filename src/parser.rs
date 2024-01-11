@@ -8,7 +8,7 @@ const REMOTE_COMMIT_HASH_COLOR_CODE: u8 = 33;
 
 pub struct SmartLogParser {}
 impl SmartLogParser {
-    pub fn parse(raw_lines: &Vec<String>) -> Option<Vec<SelectableCommit>> {
+    pub fn parse(raw_lines: &[String]) -> Option<Vec<SelectableCommit>> {
         let mut selectable_commits = Vec::new();
         let mut parsed_lines: Vec<Vec<Output>> =
             raw_lines.iter().map(|x| x.ansi_parse().collect()).collect();
@@ -21,7 +21,7 @@ impl SmartLogParser {
                 // commit hash and metadata
                 let selected = Self::has_line_selection_coloring(&line);
                 selectable_commits.push(SelectableCommit::new(vec![line], true, selected));
-            } else if Self::parsed_line_to_string(&line).trim().contains(" ") {
+            } else if Self::parsed_line_to_string(&line).trim().contains(' ') {
                 // commit message
                 selectable_commits
                     .last_mut()
@@ -37,19 +37,16 @@ impl SmartLogParser {
         Some(selectable_commits)
     }
 
-    pub fn get_hash_from_commit_line<'a>(line: &'a Vec<Output>) -> Option<&'a str> {
+    pub fn get_hash_from_commit_line<'a>(line: &'a [Output]) -> Option<&'a str> {
         let mut commit_hash_index = 0;
         for (index, block) in line.iter().enumerate() {
-            match block {
-                Output::Escape(AnsiSequence::SetGraphicsMode(codes)) => {
-                    if codes.contains(&REMOTE_COMMIT_HASH_COLOR_CODE)
-                        | codes.contains(&LOCAL_COMMIT_HASH_COLOR_CODE)
-                    {
-                        commit_hash_index = index + 1;
-                        break;
-                    }
+            if let Output::Escape(AnsiSequence::SetGraphicsMode(codes)) = block {
+                if codes.contains(&REMOTE_COMMIT_HASH_COLOR_CODE)
+                    | codes.contains(&LOCAL_COMMIT_HASH_COLOR_CODE)
+                {
+                    commit_hash_index = index + 1;
+                    break;
                 }
-                _ => {}
             }
         }
         if let Output::TextBlock(text) = &line[commit_hash_index] {
@@ -58,7 +55,7 @@ impl SmartLogParser {
         None
     }
 
-    pub fn parsed_line_to_string(line: &Vec<Output>) -> String {
+    pub fn parsed_line_to_string(line: &[Output]) -> String {
         line.iter()
             .map(|block| match block {
                 Output::TextBlock(text) => text.to_string(),
@@ -68,7 +65,7 @@ impl SmartLogParser {
             .join("")
     }
 
-    pub fn has_line_selection_coloring(line: &Vec<Output>) -> bool {
+    pub fn has_line_selection_coloring(line: &[Output]) -> bool {
         for block in line.iter() {
             match block {
                 Output::Escape(AnsiSequence::SetGraphicsMode(codes)) => {
@@ -87,15 +84,15 @@ impl SmartLogParser {
         false
     }
 
-    fn is_commit_line(line: &Vec<Output>) -> bool {
+    fn is_commit_line(line: &[Output]) -> bool {
         let mut first_text_block =
             Self::get_first_text_block_contents(line).unwrap_or("".to_string());
 
         first_text_block = first_text_block.trim().to_string();
         if first_text_block.chars().collect::<Vec<char>>().len() == 3
-            && first_text_block.contains(" ")
+            && first_text_block.contains(' ')
         {
-            first_text_block = first_text_block.split(" ").last().unwrap().to_string();
+            first_text_block = first_text_block.split(' ').last().unwrap().to_string();
         }
 
         if ["@", "o"].contains(&first_text_block.as_str()) {
@@ -104,7 +101,7 @@ impl SmartLogParser {
         false
     }
 
-    fn get_first_text_block_contents(line: &Vec<Output>) -> Option<String> {
+    fn get_first_text_block_contents(line: &[Output]) -> Option<String> {
         for block in line.iter() {
             if let Output::TextBlock(text) = block {
                 return Some(text.trim().to_string());

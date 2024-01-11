@@ -18,27 +18,24 @@ pub fn start_ui_and_get_selected_commit<'a>(smartlog: &'a mut SmartLog) -> Optio
 
     let mut commit_hash: Option<&str> = None;
     'terminal_ui: loop {
-        loop {
-            let input = crossterm::event::read().unwrap();
-            match input {
-                Event::Key(key_event) => match key_event.code {
-                    KeyCode::Char('q') | KeyCode::Esc => break 'terminal_ui,
-                    KeyCode::Up => {
-                        smartlog.move_up();
-                    }
-                    KeyCode::Down => {
-                        smartlog.move_down();
-                    }
-                    KeyCode::Char(' ') | KeyCode::Enter => {
-                        commit_hash = Some(smartlog.get_selected_commit_hash().unwrap());
-                        break 'terminal_ui;
-                    }
-                    _ => {}
-                },
+        let input = crossterm::event::read().unwrap();
+        if let Event::Key(key_event) = input {
+            match key_event.code {
+                KeyCode::Char('q') | KeyCode::Esc => break 'terminal_ui,
+                KeyCode::Up => {
+                    smartlog.move_up();
+                }
+                KeyCode::Down => {
+                    smartlog.move_down();
+                }
+                KeyCode::Char(' ') | KeyCode::Enter => {
+                    commit_hash = Some(smartlog.get_selected_commit_hash().unwrap());
+                    break 'terminal_ui;
+                }
                 _ => {}
             }
-            render_smartlog(&mut stdout, &smartlog);
         }
+        render_smartlog(&mut stdout, smartlog);
     }
 
     // Cleanup
@@ -52,7 +49,7 @@ pub fn start_ui_and_get_selected_commit<'a>(smartlog: &'a mut SmartLog) -> Optio
 fn render_smartlog(stdout: &mut Stdout, smartlog: &SmartLog) {
     stdout.queue(Clear(ClearType::All)).unwrap();
     for (idx, line) in smartlog.to_string_vec().iter().enumerate() {
-        stdout.queue(MoveTo(0 as u16, idx as u16)).unwrap();
+        stdout.queue(MoveTo(0_u16, idx as u16)).unwrap();
         print!("{}", *line);
     }
     stdout.flush().unwrap();

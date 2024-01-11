@@ -7,7 +7,7 @@ pub fn get_smartlog() -> Result<Vec<String>, Box<dyn std::error::Error>> {
         .expect("Can't get repo smartlog");
     let result = String::from_utf8(output.stdout)
         .unwrap()
-        .split("\n")
+        .split('\n')
         .map(|x| x.to_string())
         .collect();
     Ok(result)

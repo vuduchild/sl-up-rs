@@ -11,7 +11,7 @@ pub struct SmartLog<'a> {
 }
 
 impl<'a> SmartLog<'a> {
-    pub fn new(raw_lines: &'a Vec<String>) -> Self {
+    pub fn new(raw_lines: &'a [String]) -> Self {
         let selectable_commits = SmartLogParser::parse(raw_lines).unwrap();
         let selected_commit_idx = Self::get_selected_commit_index(&selectable_commits).unwrap();
         Self {
@@ -72,8 +72,7 @@ impl<'a> SmartLog<'a> {
     pub fn to_string_vec(&self) -> Vec<String> {
         self.selectable_commits
             .iter()
-            .map(|commit| commit.to_string_vec())
-            .flatten()
+            .flat_map(|commit| commit.to_string_vec())
             .collect()
     }
 
@@ -90,7 +89,7 @@ impl<'a> SmartLog<'a> {
         println!("deselected_commit_idx: {}", line_idx);
     }
 
-    fn get_selected_commit_index(selectable_commits: &Vec<SelectableCommit>) -> Option<usize> {
+    fn get_selected_commit_index(selectable_commits: &[SelectableCommit]) -> Option<usize> {
         for (idx, commit) in selectable_commits.iter().enumerate() {
             if commit.selected {
                 return Some(idx);
@@ -169,7 +168,7 @@ impl<'a> SelectableCommit<'a> {
         } else {
             if let Output::TextBlock(text) = line[0] {
                 line.pop();
-                for block in text.splitn(2, " ") {
+                for block in text.splitn(2, ' ') {
                     line.push(Output::TextBlock(block));
                 }
                 // restore the space we removed with the split above
