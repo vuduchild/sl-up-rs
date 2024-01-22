@@ -1,58 +1,41 @@
 use ansi_parser::{AnsiParser, AnsiSequence, Output};
 
-use crate::smartlog::SelectableCommit;
+use crate::graph::{GraphCommit, GraphGlyph, GraphItem, GraphItemEnum};
 
 const SELECTION_COLOR_CODE: u8 = 35;
-const LOCAL_COMMIT_HASH_COLOR_CODE: u8 = 93;
-const REMOTE_COMMIT_HASH_COLOR_CODE: u8 = 33;
 
 pub struct SmartLogParser {}
 impl SmartLogParser {
-    pub fn parse(raw_lines: &[String]) -> Option<Vec<SelectableCommit>> {
-        let mut selectable_commits = Vec::new();
+    pub fn parse(raw_lines: &[String]) -> Option<Vec<GraphItemEnum>> {
+        let mut graph_items: Vec<GraphItemEnum> = Vec::new();
         let mut parsed_lines: Vec<Vec<Output>> =
             raw_lines.iter().map(|x| x.ansi_parse().collect()).collect();
 
         while !parsed_lines.is_empty() {
             let mut line = parsed_lines.remove(0);
-            Self::preprocess_line(&mut line);
+            Self::pre_process_line(&mut line);
 
             if Self::is_commit_line(&line) {
                 // commit hash and metadata
                 let selected = Self::has_line_selection_coloring(&line);
-                selectable_commits.push(SelectableCommit::new(vec![line], true, selected));
+                graph_items.push(
+                    GraphCommit::new(vec![line.iter().map(|x| x.to_string()).collect()], selected)
+                        .into(),
+                );
             } else if Self::parsed_line_to_string(&line).trim().contains(' ') {
                 // commit message
-                selectable_commits
+                graph_items
                     .last_mut()
                     .unwrap()
-                    .parsed_lines
-                    .push(line);
+                    .add_parsed_line(line.iter().map(|x| x.to_string()).collect());
             } else {
                 // only a graph element
-                selectable_commits.push(SelectableCommit::new(vec![line], false, false));
+                graph_items.push(
+                    GraphGlyph::new(vec![line.iter().map(|x| x.to_string()).collect()]).into(),
+                );
             }
         }
-
-        Some(selectable_commits)
-    }
-
-    pub fn get_hash_from_commit_line<'a>(line: &'a [Output]) -> Option<&'a str> {
-        let mut commit_hash_index = 0;
-        for (index, block) in line.iter().enumerate() {
-            if let Output::Escape(AnsiSequence::SetGraphicsMode(codes)) = block {
-                if codes.contains(&REMOTE_COMMIT_HASH_COLOR_CODE)
-                    | codes.contains(&LOCAL_COMMIT_HASH_COLOR_CODE)
-                {
-                    commit_hash_index = index + 1;
-                    break;
-                }
-            }
-        }
-        if let Output::TextBlock(text) = &line[commit_hash_index] {
-            return Some(text);
-        }
-        None
+        Some(graph_items)
     }
 
     pub fn parsed_line_to_string(line: &[Output]) -> String {
@@ -110,7 +93,7 @@ impl SmartLogParser {
         None
     }
 
-    fn preprocess_line(line: &mut Vec<Output>) {
+    fn pre_process_line(line: &mut Vec<Output>) {
         if line.len() == 1 {
             if let Output::TextBlock(text) = &line[0] {
                 let (graph, new_text) = Self::split_graph_from_text(text).unwrap();
@@ -133,5 +116,47 @@ impl SmartLogParser {
             }
         }
         Some(text.split_at(idx))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    const RAW_LINES: [&str; 15] = [
+        "  @  \u{1b}[0;35m\u{1b}[0;93;1m1cee5d55e\u{1b}[0m\u{1b}[0;35m  Dec 08 at 09:46  royrothenberg  \u{1b}[0;36m#780 Closed\u{1b}[0m\u{1b}[0;35m \u{1b}[0;31m✗\u{1b}[0m",
+        "  │  \u{1b}[0;35m[pr body update] update stack list without overwriting PR title and body\u{1b}[0m",
+        "  │",
+        "  o  \u{1b}[0;93;1mc3bd9e5fa\u{1b}[0m  Dec 08 at 09:46  royrothenberg  \u{1b}[0;38;2;141;148;158m#779 Unreviewed\u{1b}[0m \u{1b}[0;31m✗\u{1b}[0m",
+        "╭─╯  [pr body update] fix reviewstack option breaking stack list detection",
+        "│",
+        "o  \u{1b}[0;33mba27d4d13\u{1b}[0m  Dec 07 at 22:20  \u{1b}[0;32mremote/main\u{1b}[0m",
+        "╷",
+        "╷ o  \u{1b}[0;93;1m2f85065e7\u{1b}[0m  Nov 28 at 11:49  royrothenberg  \u{1b}[0;36m#781 Closed\u{1b}[0m \u{1b}[0;32m✓\u{1b}[0m",
+        "╭─╯  [isl] increase width of diff window in split stack edit panel",
+        "│",
+        "o  \u{1b}[0;33m0e069ab09\u{1b}[0m  Nov 21 at 13:16",
+        "│",
+        "~",
+        "",
+    ];
+
+    #[test]
+    fn graph_items() {
+        let graph_items = SmartLogParser::parse(&raw_lines()).unwrap();
+        assert!(graph_items.len() == 12);
+        assert_eq!(graph_items[0].parsed_lines().len(), 2);
+        assert_eq!(graph_items[1].parsed_lines().len(), 1);
+        let commit = if let GraphItemEnum::GraphCommit(commit) = &graph_items[0] {
+            commit
+        } else {
+            panic!("Expected GraphCommit");
+        };
+        assert!(commit.selected);
+    }
+
+    fn raw_lines() -> Vec<String> {
+        RAW_LINES.iter().map(|x| x.to_string()).collect()
     }
 }

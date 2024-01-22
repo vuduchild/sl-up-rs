@@ -1,9 +1,10 @@
+use std::error::Error;
+
 use sl_up::{
     sapling_cmd::{get_smartlog, goto_commit},
     smartlog::SmartLog,
     ui::start_ui_and_get_selected_commit,
 };
-use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let raw_smartlog = get_smartlog().unwrap();
