@@ -22,6 +22,14 @@ pub fn start_ui_and_get_selected_commit<'a>(smartlog: &'a mut SmartLog) -> Optio
         if let Event::Key(key_event) = input {
             match key_event.code {
                 KeyCode::Char('q') | KeyCode::Esc => break 'terminal_ui,
+                KeyCode::Char('c') => {
+                    if key_event
+                        .modifiers
+                        .contains(crossterm::event::KeyModifiers::CONTROL)
+                    {
+                        break 'terminal_ui;
+                    }
+                }
                 KeyCode::Up => {
                     smartlog.move_up();
                 }
