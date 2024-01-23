@@ -7,8 +7,13 @@ use sl_up::{
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let raw_smartlog = get_smartlog().unwrap();
-    let mut smartlog = SmartLog::new(&raw_smartlog);
+    let raw_smartlog_result = get_smartlog();
+    if raw_smartlog_result.is_err() {
+        print!("{}", raw_smartlog_result.unwrap_err());
+        std::process::exit(1);
+    }
+
+    let mut smartlog = SmartLog::new(&raw_smartlog_result.unwrap());
 
     let commit_hash = start_ui_and_get_selected_commit(&mut smartlog);
 
