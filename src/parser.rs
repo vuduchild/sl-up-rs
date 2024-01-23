@@ -1,13 +1,13 @@
 use ansi_parser::{AnsiParser, AnsiSequence, Output};
 
-use crate::graph::{GraphCommit, GraphGlyph, GraphItem, GraphItemEnum};
+use crate::graph::{Commit, Glyph, Item, ItemType};
 
 const SELECTION_COLOR_CODE: u8 = 35;
 
 pub struct SmartLogParser {}
 impl SmartLogParser {
-    pub fn parse(raw_lines: &[String]) -> Option<Vec<GraphItemEnum>> {
-        let mut graph_items: Vec<GraphItemEnum> = Vec::new();
+    pub fn parse(raw_lines: &[String]) -> Option<Vec<ItemType>> {
+        let mut items: Vec<ItemType> = Vec::new();
         let mut parsed_lines: Vec<Vec<Output>> =
             raw_lines.iter().map(|x| x.ansi_parse().collect()).collect();
 
@@ -18,24 +18,22 @@ impl SmartLogParser {
             if Self::is_commit_line(&line) {
                 // commit hash and metadata
                 let selected = Self::has_line_selection_coloring(&line);
-                graph_items.push(
-                    GraphCommit::new(vec![line.iter().map(|x| x.to_string()).collect()], selected)
+                items.push(
+                    Commit::new(vec![line.iter().map(|x| x.to_string()).collect()], selected)
                         .into(),
                 );
             } else if Self::parsed_line_to_string(&line).trim().contains(' ') {
                 // commit message
-                graph_items
+                items
                     .last_mut()
                     .unwrap()
                     .add_parsed_line(line.iter().map(|x| x.to_string()).collect());
             } else {
                 // only a graph element
-                graph_items.push(
-                    GraphGlyph::new(vec![line.iter().map(|x| x.to_string()).collect()]).into(),
-                );
+                items.push(Glyph::new(vec![line.iter().map(|x| x.to_string()).collect()]).into());
             }
         }
-        Some(graph_items)
+        Some(items)
     }
 
     pub fn parsed_line_to_string(line: &[Output]) -> String {
@@ -144,11 +142,11 @@ mod tests {
 
     #[test]
     fn graph_items() {
-        let graph_items = SmartLogParser::parse(&raw_lines()).unwrap();
-        assert!(graph_items.len() == 12);
-        assert_eq!(graph_items[0].parsed_lines().len(), 2);
-        assert_eq!(graph_items[1].parsed_lines().len(), 1);
-        let commit = if let GraphItemEnum::GraphCommit(commit) = &graph_items[0] {
+        let items = SmartLogParser::parse(&raw_lines()).unwrap();
+        assert!(items.len() == 12);
+        assert_eq!(items[0].parsed_lines().len(), 2);
+        assert_eq!(items[1].parsed_lines().len(), 1);
+        let commit = if let ItemType::Commit(commit) = &items[0] {
             commit
         } else {
             panic!("Expected GraphCommit");

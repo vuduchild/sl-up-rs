@@ -1,28 +1,28 @@
 use crate::{
-    graph::{GraphItem, GraphItemEnum},
+    graph::{Item, ItemType},
     parser::SmartLogParser,
 };
 
 #[derive(Debug)]
 pub struct SmartLog {
-    pub graph_items: Vec<GraphItemEnum>,
+    pub items: Vec<ItemType>,
     selection_idx: usize,
 }
 
 impl SmartLog {
     pub fn new(raw_lines: &[String]) -> Self {
-        let graph_items = SmartLogParser::parse(raw_lines).unwrap();
-        let selection_idx = Self::get_selected_item_index(&graph_items).unwrap();
+        let items = SmartLogParser::parse(raw_lines).unwrap();
+        let selection_idx = Self::get_selected_item_index(&items).unwrap();
         Self {
-            graph_items,
+            items,
             selection_idx,
         }
     }
 
     pub fn get_selected_commit_hash(&self) -> Option<&str> {
-        let item = self.graph_items.get(self.selection_idx).unwrap();
-        if let GraphItemEnum::GraphCommit(graph_commit) = item {
-            return graph_commit.hash();
+        let item = self.items.get(self.selection_idx).unwrap();
+        if let ItemType::Commit(commit) = item {
+            return commit.hash();
         }
         None
     }
@@ -31,7 +31,7 @@ impl SmartLog {
         if self.selection_idx > 0 {
             let mut selection_candidate = self.selection_idx;
             for i in (0..self.selection_idx).rev() {
-                if let GraphItemEnum::GraphCommit(_) = self.graph_items[i] {
+                if let ItemType::Commit(_) = self.items[i] {
                     selection_candidate = i;
                     break;
                 }
@@ -46,10 +46,10 @@ impl SmartLog {
     }
 
     pub fn move_down(&mut self) {
-        if self.selection_idx < self.graph_items.len() - 1 {
+        if self.selection_idx < self.items.len() - 1 {
             let mut selection_candidate = self.selection_idx;
-            for i in (self.selection_idx + 1)..self.graph_items.len() {
-                if let GraphItemEnum::GraphCommit(_) = self.graph_items[i] {
+            for i in (self.selection_idx + 1)..self.items.len() {
+                if let ItemType::Commit(_) = self.items[i] {
                     selection_candidate = i;
                     break;
                 }
@@ -64,31 +64,31 @@ impl SmartLog {
     }
 
     pub fn to_string_vec(&self) -> Vec<String> {
-        self.graph_items
+        self.items
             .iter()
             .flat_map(|item| item.to_string_vec())
             .collect()
     }
 
     pub fn select_line_index(&mut self, item_idx: usize) {
-        let item = self.graph_items.get_mut(item_idx).unwrap();
-        if let GraphItemEnum::GraphCommit(graph_commit) = item {
-            graph_commit.select();
+        let item = self.items.get_mut(item_idx).unwrap();
+        if let ItemType::Commit(commit) = item {
+            commit.select();
             self.selection_idx = item_idx;
         }
     }
 
     pub fn deselect_line_idx(&mut self, item_idx: usize) {
-        let item = self.graph_items.get_mut(item_idx).unwrap();
-        if let GraphItemEnum::GraphCommit(graph_commit) = item {
-            graph_commit.deselect();
+        let item = self.items.get_mut(item_idx).unwrap();
+        if let ItemType::Commit(commit) = item {
+            commit.deselect();
         }
     }
 
-    fn get_selected_item_index(graph_items: &[GraphItemEnum]) -> Option<usize> {
-        for (idx, item) in graph_items.iter().enumerate() {
-            if let GraphItemEnum::GraphCommit(graph_commit) = item {
-                if graph_commit.selected {
+    fn get_selected_item_index(items: &[ItemType]) -> Option<usize> {
+        for (idx, item) in items.iter().enumerate() {
+            if let ItemType::Commit(commit) = item {
+                if commit.selected {
                     return Some(idx);
                 }
             }

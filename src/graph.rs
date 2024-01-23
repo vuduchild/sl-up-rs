@@ -4,11 +4,11 @@ const LOCAL_COMMIT_HASH_COLOR: &str = "\u{1b}[0;93;1m";
 const REMOTE_COMMIT_HASH_COLOR: &str = "\u{1b}[0;33m";
 
 #[derive(Debug)]
-pub struct GraphCommit {
+pub struct Commit {
     lines: Vec<Vec<String>>,
     pub selected: bool,
 }
-impl GraphCommit {
+impl Commit {
     pub fn new(parsed_lines: Vec<Vec<String>>, selected: bool) -> Self {
         Self {
             lines: parsed_lines,
@@ -82,10 +82,10 @@ impl GraphCommit {
 }
 
 #[derive(Debug)]
-pub struct GraphGlyph {
+pub struct Glyph {
     lines: Vec<Vec<String>>,
 }
-impl GraphGlyph {
+impl Glyph {
     pub fn new(parsed_lines: Vec<Vec<String>>) -> Self {
         Self {
             lines: parsed_lines,
@@ -93,8 +93,8 @@ impl GraphGlyph {
     }
 }
 
-#[enum_dispatch(GraphItemEnum)]
-pub trait GraphItem {
+#[enum_dispatch(ItemType)]
+pub trait Item {
     fn parsed_lines(&self) -> &Vec<Vec<String>>;
     fn add_parsed_line(&mut self, parsed_line: Vec<String>);
     fn to_string_vec(&self) -> Vec<String> {
@@ -105,7 +105,7 @@ pub trait GraphItem {
     }
 }
 
-impl GraphItem for GraphCommit {
+impl Item for Commit {
     fn parsed_lines(&self) -> &Vec<Vec<String>> {
         &self.lines
     }
@@ -115,7 +115,7 @@ impl GraphItem for GraphCommit {
     }
 }
 
-impl GraphItem for GraphGlyph {
+impl Item for Glyph {
     fn parsed_lines(&self) -> &Vec<Vec<String>> {
         &self.lines
     }
@@ -127,9 +127,9 @@ impl GraphItem for GraphGlyph {
 
 #[enum_dispatch]
 #[derive(Debug)]
-pub enum GraphItemEnum {
-    GraphCommit,
-    GraphGlyph,
+pub enum ItemType {
+    Commit,
+    Glyph,
 }
 
 #[cfg(test)]
@@ -158,51 +158,51 @@ mod tests {
     ];
 
     #[test]
-    fn test_graph_commit() {
-        let mut graph_commit = GraphCommit::new(vec![vec!["a".to_string()]], true);
-        graph_commit.add_parsed_line(vec!["b".to_string()]);
+    fn test_commit() {
+        let mut commit = Commit::new(vec![vec!["a".to_string()]], true);
+        commit.add_parsed_line(vec!["b".to_string()]);
         assert_eq!(
-            graph_commit.lines,
+            commit.lines,
             vec![vec!["a".to_string()], vec!["b".to_string()]]
         );
-        assert!(graph_commit.selected);
-        graph_commit.selected = false;
-        assert!(!graph_commit.selected);
+        assert!(commit.selected);
+        commit.selected = false;
+        assert!(!commit.selected);
     }
 
     #[test]
-    fn test_graph_glyph() {
-        let mut graph_glyph = GraphGlyph::new(vec![vec!["a".to_string()]]);
-        graph_glyph.add_parsed_line(vec!["b".to_string()]);
+    fn test_glyph() {
+        let mut glyph = Glyph::new(vec![vec!["a".to_string()]]);
+        glyph.add_parsed_line(vec!["b".to_string()]);
         assert_eq!(
-            graph_glyph.parsed_lines(),
+            glyph.parsed_lines(),
             &vec![vec!["a".to_string()], vec!["b".to_string()]]
         );
     }
 
     #[test]
-    fn test_graph_item_enum() {
-        let mut graph_item_enum_vec: Vec<GraphItemEnum> = vec![
-            GraphCommit::new(vec![vec!["a".to_string()]], true).into(),
-            GraphGlyph::new(vec![vec!["a".to_string()]]).into(),
+    fn test_item_types() {
+        let mut items: Vec<ItemType> = vec![
+            Commit::new(vec![vec!["a".to_string()]], true).into(),
+            Glyph::new(vec![vec!["a".to_string()]]).into(),
         ];
 
-        for item in graph_item_enum_vec.iter_mut() {
+        for item in items.iter_mut() {
             item.add_parsed_line(vec!["b".to_string()]);
 
             match item {
-                GraphItemEnum::GraphCommit(graph_commit) => {
+                ItemType::Commit(commit) => {
                     assert_eq!(
-                        graph_commit.parsed_lines(),
+                        commit.parsed_lines(),
                         &vec![vec!["a".to_string()], vec!["b".to_string()]]
                     );
-                    assert!(graph_commit.selected);
-                    graph_commit.selected = false;
-                    assert!(!graph_commit.selected);
+                    assert!(commit.selected);
+                    commit.selected = false;
+                    assert!(!commit.selected);
                 }
-                GraphItemEnum::GraphGlyph(graph_glyph) => {
+                ItemType::Glyph(glyph) => {
                     assert_eq!(
-                        graph_glyph.parsed_lines(),
+                        glyph.parsed_lines(),
                         &vec![vec!["a".to_string()], vec!["b".to_string()]]
                     );
                 }
@@ -216,24 +216,24 @@ mod tests {
 
         let commit = &mut graph_items[2];
         match commit {
-            GraphItemEnum::GraphCommit(graph_commit) => {
-                assert!(!graph_commit.selected);
+            ItemType::Commit(commit) => {
+                assert!(!commit.selected);
                 assert_eq!(
-                    graph_commit.parsed_lines()[0][4],
+                    commit.parsed_lines()[0][4],
                     "  Dec 08 at 09:46  royrothenberg  "
                 );
                 assert_eq!(
-                    graph_commit.parsed_lines()[1][1],
+                    commit.parsed_lines()[1][1],
                     "  [pr body update] fix reviewstack option breaking stack list detection"
                 );
-                graph_commit.select();
-                assert!(graph_commit.selected);
+                commit.select();
+                assert!(commit.selected);
                 assert_eq!(
-                    graph_commit.parsed_lines()[0][1],
+                    commit.parsed_lines()[0][4],
                     "\u{1b}[0;35m", // This item was inserted by select()
                 );
                 assert_eq!(
-                    graph_commit.parsed_lines()[1][1],
+                    commit.parsed_lines()[1][1],
                     "\u{1b}[0;35m", // This item was inserted by select()
                 );
             }
@@ -247,14 +247,14 @@ mod tests {
 
         let commit = &mut graph_items[0];
         match commit {
-            GraphItemEnum::GraphCommit(graph_commit) => {
-                assert!(graph_commit.selected);
-                assert!(graph_commit.parsed_lines()[0].contains(&"\u{1b}[0;35m".to_string()));
-                assert!(graph_commit.parsed_lines()[1].contains(&"\u{1b}[0;35m".to_string()));
-                graph_commit.deselect();
-                assert!(!graph_commit.selected);
-                assert!(!graph_commit.parsed_lines()[0].contains(&"\u{1b}[0;35m".to_string()));
-                assert!(!graph_commit.parsed_lines()[1].contains(&"\u{1b}[0;35m".to_string()));
+            ItemType::Commit(commit) => {
+                assert!(commit.selected);
+                assert!(commit.parsed_lines()[0].contains(&"\u{1b}[0;35m".to_string()));
+                assert!(commit.parsed_lines()[1].contains(&"\u{1b}[0;35m".to_string()));
+                commit.deselect();
+                assert!(!commit.selected);
+                assert!(!commit.parsed_lines()[0].contains(&"\u{1b}[0;35m".to_string()));
+                assert!(!commit.parsed_lines()[1].contains(&"\u{1b}[0;35m".to_string()));
             }
             _ => panic!("Expected GraphCommit"),
         }
@@ -266,16 +266,16 @@ mod tests {
 
         let local_commit = &mut graph_items[0];
         match local_commit {
-            GraphItemEnum::GraphCommit(graph_commit) => {
-                assert_eq!(graph_commit.hash().unwrap(), "1cee5d55e");
+            ItemType::Commit(commit) => {
+                assert_eq!(commit.hash().unwrap(), "1cee5d55e");
             }
             _ => panic!("Expected GraphCommit"),
         }
 
         let remote_commit = &mut graph_items[4];
         match remote_commit {
-            GraphItemEnum::GraphCommit(graph_commit) => {
-                assert_eq!(graph_commit.hash().unwrap(), "ba27d4d13");
+            ItemType::Commit(commit) => {
+                assert_eq!(commit.hash().unwrap(), "ba27d4d13");
             }
             _ => panic!("Expected GraphCommit"),
         }
