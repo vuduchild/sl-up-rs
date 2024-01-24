@@ -19,31 +19,28 @@ impl SmartLogParser {
                 // commit hash and metadata
                 let selected = Self::has_line_selection_coloring(&line);
                 items.push(
-                    Commit::new(vec![line.iter().map(|x| x.to_string()).collect()], selected)
-                        .into(),
+                    Commit::new(vec![Self::parsed_line_to_string_vec(&line)], selected).into(),
                 );
             } else if Self::parsed_line_to_string(&line).trim().contains(' ') {
                 // commit message
                 items
                     .last_mut()
                     .unwrap()
-                    .add_parsed_line(line.iter().map(|x| x.to_string()).collect());
+                    .add_parsed_line(Self::parsed_line_to_string_vec(&line));
             } else {
                 // only a graph element
-                items.push(Glyph::new(vec![line.iter().map(|x| x.to_string()).collect()]).into());
+                items.push(Glyph::new(vec![Self::parsed_line_to_string_vec(&line)]).into());
             }
         }
         Some(items)
     }
 
     pub fn parsed_line_to_string(line: &[Output]) -> String {
-        line.iter()
-            .map(|block| match block {
-                Output::TextBlock(text) => text.to_string(),
-                Output::Escape(seq) => seq.to_string(),
-            })
-            .collect::<Vec<String>>()
-            .join("")
+        Self::parsed_line_to_string_vec(line).join("")
+    }
+
+    pub fn parsed_line_to_string_vec(line: &[Output]) -> Vec<String> {
+        line.iter().map(|x| x.to_string()).collect()
     }
 
     pub fn has_line_selection_coloring(line: &[Output]) -> bool {

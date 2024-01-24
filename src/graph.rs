@@ -1,8 +1,16 @@
+//! A SaplingSCM Smartlog output graph (`sl ssl`) is made of two types of items:
+//! 1. Commits: These usually comprise of 2 lines. The first line holds the commit hash, date, author and PR status. The second line holds the commit message. Commits can be local or remote.
+//! 2. Glyphs: These are the graph elements that connect commits to each other.
+//!
+//! In our UI, we want to render the exact output of the smartlog. The interactivity we add to the graph makes only commits selectable and actionable.
+//! We render the glyphs as well, but they are not made selectable.
+//!
 use enum_dispatch::enum_dispatch;
 
 const LOCAL_COMMIT_HASH_COLOR: &str = "\u{1b}[0;93;1m";
 const REMOTE_COMMIT_HASH_COLOR: &str = "\u{1b}[0;33m";
 
+/// A graph item representing a commit in the smartlog output. It can be selected and deselected.
 #[derive(Debug)]
 pub struct Commit {
     lines: Vec<Vec<String>>,
@@ -16,6 +24,17 @@ impl Commit {
         }
     }
 
+    /// Get the hash of this commit which can be used for operations such as `sl goto <hash>`
+    /// ```
+    ///  # use sl_up::graph::Commit;
+    ///  let commit_lines = vec![
+    ///      vec!["  @  ", "\u{1b}[0;35m", "\u{1b}[0;93;1m", "1cee5d55e", "\u{1b}[0m", "\u{1b}[0;35m", "  Dec 08 at 09:46  royrothenberg  ", "\u{1b}[0;36m", "#780 Closed", "\u{1b}[0m", "\u{1b}[0;35m", " ", "\u{1b}[0;31m", "✗", "\u{1b}[0m"],
+    ///      vec!["  │  ", "\u{1b}[0;35m", "[pr body update] update stack list without overwriting PR title and body", "\u{1b}[0m"],
+    ///  ].iter().map(|x| x.iter().map(|x| x.to_string()).collect()).collect();
+    ///  let commit = Commit::new(commit_lines, true);
+    ///  assert_eq!(commit.hash().unwrap(), "1cee5d55e");
+    /// ```
+    ///
     pub fn hash(&self) -> Option<&str> {
         let first_line = self.parsed_lines().first().unwrap();
 
@@ -81,6 +100,8 @@ impl Commit {
     }
 }
 
+/// A graph item representing a glyph in the smartlog output.
+/// Usually, this is part of the graph drawing connecting commits together.
 #[derive(Debug)]
 pub struct Glyph {
     lines: Vec<Vec<String>>,
@@ -93,6 +114,7 @@ impl Glyph {
     }
 }
 
+/// A trait for graph items (using enum_dispatch).
 #[enum_dispatch(ItemType)]
 pub trait Item {
     fn parsed_lines(&self) -> &Vec<Vec<String>>;
@@ -125,6 +147,7 @@ impl Item for Glyph {
     }
 }
 
+/// An enum of graph item types (using enum_dispatch).
 #[enum_dispatch]
 #[derive(Debug)]
 pub enum ItemType {
@@ -261,7 +284,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_hash() {
+    fn test_hash() {
         let graph_items = &mut SmartLogParser::parse(&raw_lines()).unwrap();
 
         let local_commit = &mut graph_items[0];
