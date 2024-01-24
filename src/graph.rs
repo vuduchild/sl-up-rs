@@ -251,6 +251,9 @@ mod tests {
                 );
                 commit.select();
                 assert!(commit.selected);
+                // verifying idempotency
+                commit.select();
+                assert!(commit.selected);
                 assert_eq!(
                     commit.parsed_lines()[0][4],
                     "\u{1b}[0;35m", // This item was inserted by select()
@@ -274,6 +277,9 @@ mod tests {
                 assert!(commit.selected);
                 assert!(commit.parsed_lines()[0].contains(&"\u{1b}[0;35m".to_string()));
                 assert!(commit.parsed_lines()[1].contains(&"\u{1b}[0;35m".to_string()));
+                commit.deselect();
+                assert!(!commit.selected);
+                // verifying idempotency
                 commit.deselect();
                 assert!(!commit.selected);
                 assert!(!commit.parsed_lines()[0].contains(&"\u{1b}[0;35m".to_string()));
