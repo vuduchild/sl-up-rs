@@ -6,7 +6,7 @@ This is my own personal implementation for a tool available internally at Meta. 
 I've ported this from my [Python version of the tool](https://github.com/vuduchild/sl-up-py) as an exercise to learn Rust. It's the first I've ever written in this exciting language, sorry if I made some unexperienced choices. Happy for any feedback!
 
 # Installation
-The easieset way would be using cargo, which will install the latest release from [crates.io](https://crates.io/crates/sl-up):
+The easieset way would be using cargo, which would install the latest release from [crates.io](https://crates.io/crates/sl-up):
 ```
 $ cargo add sl-up
 ```
